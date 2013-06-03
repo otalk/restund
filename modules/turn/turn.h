@@ -7,6 +7,7 @@
 struct turnd {
 	struct sa rel_addr;
 	struct sa rel_addr6;
+	struct sa udp_listen_addr;
 	struct hash *ht_alloc;
 	uint64_t bytec_tx;
 	uint64_t bytec_rx;

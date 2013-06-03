@@ -47,6 +47,21 @@ static const struct sa *relay_addr(const struct turnd *turnd, uint8_t af)
 	return NULL;
 }
 
+static const struct sa *listen_addr(const struct turnd *turnd, uint8_t af)
+{
+	switch (af) {
+
+	case STUN_AF_IPv4:
+		return &turnd->udp_listen_addr;
+
+	case STUN_AF_IPv6:
+		return NULL;
+	}
+
+	return NULL;
+}
+
+
 
 static void destructor(void *arg)
 {
@@ -236,6 +251,7 @@ void allocate_request(struct turnd *turnd, struct allocation *alx,
 	int err = 0, rerr;
 	uint64_t rsv;
 	uint8_t af;
+	uint16_t allocated_port;
 
 	/* Existing allocation */
 	if (alx) {
@@ -258,6 +274,7 @@ void allocate_request(struct turnd *turnd, struct allocation *alx,
 	af = reqaf ? reqaf->v.req_addr_family : STUN_AF_IPv4;
 
 	rel_addr = relay_addr(turnd, af);
+	restund_debug("turn: rel_addr **** (%J)\n", rel_addr);
 	if (!sa_isset(rel_addr, SA_ADDR)) {
 		restund_info("turn: unsupported address family: %u\n", af);
 		rerr = stun_ereply(proto, sock, src, 0, msg,
@@ -368,11 +385,12 @@ void allocate_request(struct turnd *turnd, struct allocation *alx,
 		goto out;
 	}
 
+	restund_warning("turn: relay listen: %J\n", listen_addr(turnd, af));
 	/* Relay socket */
 	if (rsvt)
 		err = rsvt_listen(turnd->ht_alloc, al, rsvt->v.rsv_token);
 	else
-		err = relay_listen(rel_addr, al, even ? &even->v.even_port :
+		err = relay_listen(listen_addr(turnd, af), al, even ? &even->v.even_port :
 				   NULL);
 
 	if (err) {
@@ -383,6 +401,10 @@ void allocate_request(struct turnd *turnd, struct allocation *alx,
 				   STUN_ATTR_SOFTWARE, restund_software);
 		goto out;
 	}
+
+	allocated_port = sa_port(&al->rel_addr);
+	sa_cpy(&al->rel_addr, rel_addr);
+	sa_set_port(&al->rel_addr, allocated_port);
 
 	udp_rxbuf_presz_set(al->rel_us, 4);
 	if (turndp()->udp_sockbuf_size > 0)
