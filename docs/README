@@ -1,0 +1,56 @@
+README
+------
+
+restund - modular STUN/TURN server
+Copyright (c) 2010 - 2012 Creytiv.com
+
+Distributed under BSD license
+
+
+Feedback:
+
+- Please send feedback to <libre@creytiv.com>
+
+
+External dependencies:
+
+libre
+
+
+Supported platforms:
+
+* Linux
+* FreeBSD
+* OpenBSD
+* NetBSD
+* Solaris
+* Apple Mac OS X
+
+
+Design goals:
+
+* Modular STUN/TURN server
+* STUN and TURN support
+* IPv4 and IPv6 support
+* UDP, TCP and TLS support
+* RFC-compliancy
+* Robust, fast, low footprint
+* Portable C89 and C99 source code
+
+
+Modular Plugin Architecture:
+
+* STUN messages:    auth binding stat turn
+* Database backend: mysql_ser
+* Server status:    status
+* Logging:          syslog
+
+
+IETF RFCs:
+
+* RFC 5389 - Session Traversal Utilities for NAT (STUN)
+* RFC 5766 - Traversal Using Relays around NAT (TURN): Relay Extensions to
+             Session Traversal Utilities for NAT (STUN)
+* RFC 5780 - NAT Behavior Discovery Using Session Traversal Utilities for
+             NAT (STUN)
+* RFC 6156 - Traversal Using Relays around NAT (TURN) Extension for IPv6

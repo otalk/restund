@@ -1,0 +1,45 @@
+#!/bin/sh
+#
+# Magick markers (optional - used by munin-config and som installation
+# scripts):
+#%# family=auto
+#%# capabilities=autoconf
+
+
+if [ "$1" = "autoconf" ]; then
+	echo yes 
+	exit 0
+fi
+
+if [ "$1" = "config" ]; then
+
+	echo 'graph_title restund'
+	echo 'graph_args --base 1000 -l 0 '
+	echo 'graph_vlabel number / ${graph_period}'
+	echo 'graph_category restund'
+	echo 'graph_info This graph shows the status of restund.'
+
+	echo 'binding_req.label Binding_Request'
+	echo 'binding_req.draw LINE2'
+	echo 'binding_req.type DERIVE'
+	echo 'binding_req.info The number of binding requests.'
+	echo 'allocate_req.label Allocate_Request'
+	echo 'allocate_req.draw LINE2'
+	echo 'allocate_req.type DERIVE'
+	echo 'allocate_req.info The number of allocate requests.'
+	echo 'refresh_req.label Refresh_Request'
+	echo 'refresh_req.draw LINE2'
+	echo 'refresh_req.type DERIVE'
+	echo 'refresh_req.info The number of Refresh requests.'
+	echo 'chanbind_req.label ChannelBind_Request'
+	echo 'chanbind_req.draw LINE2'
+	echo 'chanbind_req.type DERIVE'
+	echo 'chanbind_req.info The number of ChannelBind requests.'
+	echo 'unknown_req.label Unknown_Request'
+	echo 'unknown_req.draw LINE2'
+	echo 'unknown_req.type DERIVE'
+	echo 'unknown_req.info The number of unknown requests.'
+	exit 0
+fi
+
+echo stat | nc -w 1 -u 127.0.0.1 33000 | sed -e 's/ /.value /'

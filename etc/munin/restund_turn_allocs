@@ -1,0 +1,37 @@
+#!/bin/sh
+#
+# Magick markers (optional - used by munin-config and som installation
+# scripts):
+#%# family=auto
+#%# capabilities=autoconf
+
+config_restund_turn_allocs()
+{
+	echo "graph_title restund turn allocations"
+	echo 'graph_args --base 1000 -l 0 '
+	echo 'graph_vlabel number'
+	echo 'graph_category restund'
+	echo "graph_info This graph shows the current number of turn allocations."
+	echo 'allocs_cur.label Allocations'
+	echo 'allocs_cur.draw LINE2'
+	echo 'allocs_cur.type GAUGE'
+	echo 'allocs_cur.info Current number of turn allocations.'
+}
+
+fetch_restund_turn_allocs()
+{
+	echo turnstats | nc -w 1 -u 127.0.0.1 33000 | grep allocs_cur | sed -e 's/ /.value /'
+}
+
+
+if [ "$1" = "autoconf" ]; then
+	echo yes 
+	exit 0
+fi
+
+if [ "$1" = "config" ]; then
+	config_restund_turn_allocs
+	exit 0
+fi
+
+fetch_restund_turn_allocs

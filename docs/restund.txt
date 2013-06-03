@@ -1,0 +1,322 @@
+
+
+
+                 Restund Functionality and Architecture
+
+
+
+1.  Introduction
+
+   This document describes the overall functionality and architecture
+   of the Restund STUN [RFC5389] server.  The server is designed around
+   the principle of a lightweight core using server modules to extend
+   its functionality.  First we will have a detailed look at the server
+   core.  We will then describe the various modules.
+
+
+2.  Server Core
+
+   This section gives an overview of the functionality provided by the
+   server core.  It describes how the server is configured and defines
+   the generic baseline functionality provided to help the modules
+   extend its feature set in a flexible fashion.
+
+2.1.  Command Line Options
+
+   Restund recognizes the following command line options:
+
+   -d  Turn on debugging.  In debug mode the server will increase the
+       verbosity of its output in order to help debug potential issues.
+
+   -h  Show summary of options.  This option will list all available
+       command line options with a brief description.
+
+   -n  Run in foreground.  When this option is enabled the server will
+       avoid auto back-grounding into a daemon when starting up.
+
+   -f  Configuration file.  By default Restund expects to find a
+       configuration file at /etc/restund.conf.  An alternative
+       configuration file can be specified using this command line
+       option.
+
+2.2.  Configuration File
+
+   Most of the configuration options is provided through a configuration
+   file.  The server core is responsible for loading the configuration
+   file and providing access to all configuration options for the
+   modules.  Some configuration options is used by the server core
+   itself.  This section provides a description of all the available
+   configuration options recognized by the server core:
+
+   daemon <yes|no>
+
+      This parameter control if the server should auto background into
+      a daemon when started.  The -n command line option overrides this
+      setting.  Default value is yes.
+
+   debug <yes|no>
+
+      This option controls the default debug setting.  The -d command
+      line option overrides this setting.  Default value is no.
+
+   realm <realm-value>
+
+      This option set the realm used for authentication.
+
+   syncinterval <n>
+
+      The syncinterval option sets the database sync interval (in
+      seconds).  Every n seconds the core database will issue a database
+      query in order to synchronize its local database against the
+      master database.
+
+   udp_listen <IP-address>:<port>
+
+      This parameter defines the listen address for the local UDP socket.
+      The default port is 3478, which is the "well known" STUN port as
+      defined in [RFC5389]. Multiple directives can be specified,
+      and Restund will create one UDP socket for each directive.
+
+   udp_sockbuf_size <n>
+
+      This option controls the transmit and receive kernel buffer size
+      for the UDP socket.
+
+   tcp_listen <IP-address>:<port>
+
+      This parameter defines the listen address for the local TCP socket.
+      The default port is 3478, which is the "well known" STUN port as
+      defined in [RFC5389]. Multiple directives can be specified,
+      and Restund will create one UDP socket for each directive.
+
+   module_path <path>
+
+      This option is used to specify the path to the modules.
+
+   module <filename>
+
+      This option is used to load a dynamically linked module, and the
+      argument specifies its filename.  The core accepts multiple module
+      parameters.
+
+
+2.3.  Database Interface
+
+   In order to provide user authentication and to log relay traffic the
+   Restund server needs to access a database back-end.
+
+   The server core implements a generic database interface.  This
+   interface provides a layer of abstraction between modules processing
+   database data (e.g., get password) and modules implementing a
+   specific database back-end (e.g., mysql_ser).  This layer makes it
+   possible to change the database back-end without impacting modules
+   that needs to access database data.
+
+   Since Restund handles all packets using one server process and deals
+   with relaying of real time media packets (e.g., TURN
+   [RFC5766]), it is important that database calls does not
+   block the relaying operation.  In order to achieve fast database
+   access, the database interface stores a copy of the entire user
+   database in a local hash table.  A stand-alone database thread is
+   responsible for keeping this local authentication database up to date
+   by periodically querying the master database using a database module.
+   To avoid write blocking, relay traffic records are written to a FIFO,
+   and the database thread is taking care of writing relay records from
+   the FIFO to the master database through a back-end module.
+
+   The database layer also provide redundancy against master database
+   outage.  As a local copy of the authentication data is kept in
+   memory, the server will be fully functional even when the database
+   is down.  When the master database is unaccessible, the log FIFO will
+   enqueue relay records.  These records will be written to the database
+   as soon as the database becomes available again.
+
+2.4.  Log Interface
+
+   A generic log interface is implemented in the server core.  All log
+   messages are issued through this interface.  This interface provides
+   a layer of abstraction between modules sending log messages and
+   modules implementing a specific log back-end (e.g., syslog).  This
+   layer makes it possible to change the log back-end without impacting
+   code that issue log messages.  Multiple log back-end modules can
+   subscribe to log messages by registering a log handler.
+
+2.5.  Status Interface
+
+   The server core implements a generic server status interface.  This
+   interface provides a layer of abstraction between modules producing
+   status information (e.g. the TURN [RFC5766] module) and modules
+   implementing presentation of server status (e.g., through HTTP).
+
+2.6.  STUN Interface
+
+   STUN [RFC5389] messages are initially processed by a basic STUN
+   interface in the server core.  This interface is responsible for
+   allocating UDP and TCP sockets and parsing incoming STUN messages.
+   The actual message processing is handled in server modules.  Using
+   this interface, a module can subscribe to incoming STUN messages
+   by registering a message handler.
+
+
+3.  Modules
+   
+   In order to extend the servers feature set in a structured way, the
+   Restund server supports dynamic module loading at runtime. Modules
+   are loaded through the module option in the configuration file
+   (section 2.2).  This section gives an overview of the functionality
+   provided by the various server modules.  It describes how the modules
+   are configured and the functionality they provide.
+
+3.1.  Binding
+
+   The binding module implements the basic STUN feature set as defined
+   in [RFC5389].  The module accepts BINDING requests and issues
+   BINDING responses.  The BINDING method can be used to determine the
+   particular "binding" a NAT has allocated to a STUN client.
+   When used in either request/response or in indication transactions,
+   the BINDING method can also be used to keep these "bindings" alive.
+
+   This module also implements NAT behavior discovery using STUN as defined in
+   [RFC5780].  This specification defines an experimental usage of the STUN
+   protocol that discovers the presence and current behavior of NATs and
+   firewalls between the STUN client and the STUN server.  This module requires
+   two different IP-addresses available on the host running the STUN
+   server.  A secondary address is needed by the NAT discovery
+   mechanism, and requires at least three udp_listen or tcp_listen
+   directives.
+
+3.2.  MySQL SER
+
+   The mysql_ser module implements the database interface specified in
+   section 2.3 for queries against a MySQL database server.  Functions
+   are provided for fetching user account data. The following
+   configuration options is recognized by the mysql_ser module:
+
+   mysql_host <hostname>
+
+      Name or IP-address of the host running the MySQL database server.
+
+   mysql_user <user-name>
+
+      Login user-name for the MySQL database client.
+
+   mysql_pass <password>
+
+      Login password for the MySQL database client.
+
+   mysql_db <database-name>
+
+      Name of the database instance in which user account data are
+      stored.
+
+
+3.3.  Stat
+
+   The stat module collects statistics about received STUN messages.
+   A separate counter is kept for each STUN message type.  The
+   statistics data is made available through the status interface
+   described in section 2.5.
+
+
+3.4.  Status
+
+   The status module uses the status interface defined in section 2.5
+   to convey server status information over plain UDP or over HTTP.
+   When requesting server status over UDP (e.g., using netcat) or over
+   HTTP (using a web browser) a list of keywords (with description)
+   identifying various subsystems is provided.  To obtain status about
+   a specific subsystem, the keyword is entered into netcat or appended
+   to the URL in the web browser.  Automatic update every N seconds is
+   available using HTTP by appending '?r=N' to the status URL.  The
+   example below requests status for the TURN subsystem every fifth
+   second:
+
+      http://<server-host>:<status-port>/turn?r=5
+
+   Additionally, information about server version, build date and uptime
+   are available when using HTTP.  The following configuration options
+   is recognized by the status module:
+
+   status_udp_addr <IP-address>
+
+      This option specifies the the local UDP listen address (interface)
+      on which status requests are accepted.  Default value is
+      127.0.0.1.
+
+   status_udp_port <n>
+
+      This option specifies the the local UDP listen port on which
+      status requests are accepted.  Default value is 33000.
+
+   status_http_addr <IP-address>
+
+      This option specifies the the local TCP listen address (interface)
+      on which status HTTP requests are accepted.  Default value is
+      127.0.0.1.
+
+   status_http_port <n>
+
+      This option specifies the the local TCP listen port on which
+      status HTTP requests are accepted.  Default value is 8080.
+
+
+3.5.  Syslog
+
+   The syslog module implements standard unix syslog using the log
+   interface described in section 2.4.  When this module is loaded all
+   server events will be logged using unix syslog.  The following
+   configuration options is recognized by the syslog module:
+
+   syslog_facility <n>
+
+      This option specifies the default syslog facility to be assigned
+      to all messages.  Default value is 24 (LOG_DAEMON).
+
+
+3.6.  Turn
+
+   The turn module implements Traversal Using Relays around NAT (TURN)
+   as defined in [RFC5766].  The protocol, which is a relay
+   extension to STUN, allows hosts to control the operation of the relay
+   and to exchange packets with its peers using the relay.  In addition
+   to Allocate, Refresh, CreatePermission and ChannelBind requests the
+   module handles Send and Data indications and channel data.
+   The turn module supports the long term authentication mechanism
+   as defined in [RFC5389].
+   User account data is provided through the database interface
+   described in section 2.3.  The following configuration options is
+   recognized by the turn module:
+
+   turn_max_allocations <n>
+
+      This option specifies the maximum number of simultaneous turn
+      allocations on the server.  Default value is 512.
+
+   turn_max_lifetime <n>
+
+      This option specifies the maximum lifetime (in seconds) allowed
+      for TURN allocations.  Default value is 600.
+
+   turn_relay_addr <IP-address>
+
+      This option specifies the IP-address (interface) on which data
+      should be relayed.
+
+   turn_relay_addr6 <IPv6-address>
+
+      This option specifies the IPv6-address (interface) on which data
+      should be relayed.
+
+
+4.  References
+
+   [RFC5389]  Rosenberg, J., Mahy, R., Matthews, P., and D. Wing,
+              "Session Traversal Utilities for NAT (STUN)", RFC 5389,
+              October 2008.
+
+   [RFC5766]  Mahy, R., Matthews, P., and J. Rosenberg, "Traversal Using
+              Relays around NAT (TURN): Relay Extensions to Session
+              Traversal Utilities for NAT (STUN)", RFC 5766, April 2010.
+
+   [RFC5780]  NAT Behavior Discovery Using Session Traversal Utilities for NAT
+              (STUN). D. MacDonald, B. Lowekamp. May 2010.

@@ -1,0 +1,9 @@
+In order to reduce packet loss when processing load
+is high, you may have to adjust the maximum size of
+your socket buffers.
+
+On Linux this can be done with the following command
+for read and write buffers respectively:
+
+echo 1048576 > /proc/sys/net/core/rmem_max
+echo 1048576 > /proc/sys/net/core/wmem_max

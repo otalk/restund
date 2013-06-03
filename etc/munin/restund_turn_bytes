@@ -1,0 +1,57 @@
+#!/bin/sh
+#
+# This script is for the server-part of restund
+#
+# Magick markers (optional - used by munin-config and som installation
+# scripts):
+#%# family=auto
+#%# capabilities=autoconf
+
+
+config_turn_bytes()
+{
+	echo "graph_title restund turn traffic"
+	echo 'graph_args --base 1000 -l 0 '
+	echo 'graph_vlabel bits / ${graph_period}'
+	echo 'graph_category restund'
+	echo "graph_info This graph shows restund turn traffic status."
+
+	echo "bytes_tx.label TX bps"
+	echo "bytes_tx.draw AREA"
+	echo "bytes_tx.type DERIVE"
+	echo "bytes_tx.min 0"
+	echo 'bytes_tx.cdef bytes_tx,8,*'
+	echo "bytes_tx.info TX bps."
+
+	echo "bytes_rx.label RX bps"
+	echo "bytes_rx.draw STACK"
+	echo "bytes_rx.type DERIVE"
+	echo "bytes_rx.min 0"
+	echo 'bytes_rx.cdef bytes_rx,8,*'
+	echo "bytes_rx.info RX bps."
+
+	echo "bytes_tot.label Total bps"
+	echo "bytes_tot.draw LINE1"
+	echo "bytes_tot.colour 000000"
+	echo "bytes_tot.type DERIVE"
+	echo "bytes_tot.min 0"
+	echo 'bytes_tot.cdef bytes_tot,8,*'
+	echo "bytes_tot.info Total bps."
+}
+
+fetch_turn_bytes()
+{
+	echo turnstats | nc -w 1 -u 127.0.0.1 33000 | grep bytes_ | sed -e 's/ /.value /'
+}
+
+if [ "$1" = "autoconf" ]; then
+	echo yes 
+	exit 0
+fi
+
+if [ "$1" = "config" ]; then
+	config_turn_bytes
+	exit 0
+fi
+
+fetch_turn_bytes

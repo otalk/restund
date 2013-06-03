@@ -1,0 +1,21 @@
+Source: restund
+Section: comm
+Priority: optional
+Maintainer: Alfred E. Heggestad <aeh@db.org>
+Build-Depends: debhelper (>= 4.0.0)
+Standards-Version: 3.6.2
+
+Package: restund
+Architecture: any
+Depends: ${shlibs:Depends}
+Description: Modular STUN Server
+ .
+ The STUN Server is designed around the principle of a lightweight core
+ using server modules to extend its functionality.
+ .
+ Some of the modules supported:
+ .
+ - STUN Binding module
+ - TURN Relay module
+ - NAT Behaviour Discovery module
+ - MySQL support
