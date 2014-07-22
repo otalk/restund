@@ -6,9 +6,14 @@
 
 #include <string.h>
 #include <time.h>
+#include <stdlib.h>
 #include <re.h>
+#include <re_hmac.h>
 #include <restund.h>
 
+#ifndef SHA_DIGEST_LENGTH
+#define SHA_DIGEST_LENGTH 20
+#endif
 
 enum {
 	NONCE_EXPIRY   = 3600,
@@ -20,6 +25,10 @@ enum {
 static struct {
 	uint32_t nonce_expiry;
 	uint64_t secret;
+	char sharedsecret[256];
+	size_t sharedsecret_length;
+	char sharedsecret2[256];
+	size_t sharedsecret2_length;
 } auth;
 
 
@@ -84,6 +93,51 @@ static bool nonce_validate(char *nonce, time_t now, const struct sa *src)
 	return true;
 }
 
+/* shared secret authentication as described in 
+ * http://tools.ietf.org/html/draft-uberti-rtcweb-turn-rest-00
+ */
+static bool sharedsecret_auth_check_timestamp(const struct stun_attr *user, const time_t now) 
+{
+    long ts = 0;
+    sscanf(user->v.username, "%ld:%*s", &ts);
+    if (now > ts) {
+        restund_debug("auth: shared secret nonce expired, ts was %ld now is %ld\n", ts, now);
+        return false;
+    }
+    return true;
+}
+
+static bool sharedsecret_auth_calc_ha1(const struct stun_attr *user, const uint8_t *secret, const size_t secret_length, uint8_t *key) 
+{
+	uint8_t expected[SHA_DIGEST_LENGTH];
+	char expected_base64[SHA_DIGEST_LENGTH/2*3];
+	size_t b64len;
+
+	uint8_t ha1[MD5_SIZE];
+	int retval;
+	if (!secret_length) {
+        /*
+		restund_warning("auth: calc_ha1 no secret length %s\n", secret);
+        */
+		return false;
+	}
+
+	hmac_sha1(secret, secret_length,
+		  (uint8_t *) user->v.username, strlen(user->v.username),
+		  expected, SHA_DIGEST_LENGTH);
+	b64len = sizeof expected_base64;
+	if ((retval = base64_encode(expected, SHA_DIGEST_LENGTH, expected_base64, &b64len)) != 0) {
+		restund_warning("auth: failed to base64 encode hmac, error %d\n", retval);
+		return false;	
+	}
+	expected_base64[b64len] = 0;
+	if ((retval = md5_printf(ha1, "%s:%s:%s", user->v.username, restund_realm(), expected_base64)) != 0) {
+		restund_warning("auth: failed to md5_printf ha1, error %d\n", retval);
+		return false;
+	}
+	memcpy(key, &ha1, MD5_SIZE);
+	return true;
+}
 
 static bool request_handler(struct restund_msgctx *ctx, int proto, void *sock,
 			    const struct sa *src, const struct sa *dst,
@@ -142,8 +196,40 @@ static bool request_handler(struct restund_msgctx *ctx, int proto, void *sock,
 	}
 
 	ctx->keylen = MD5_SIZE;
-
-	if (restund_get_ha1(user->v.username, ctx->key)) {
+	if (auth.sharedsecret_length > 0 || auth.sharedsecret2_length > 0) {
+		if (!((sharedsecret_auth_calc_ha1(user, (uint8_t*) auth.sharedsecret, 
+                                auth.sharedsecret_length, ctx->key)
+			    && !stun_msg_chk_mi(msg, ctx->key, ctx->keylen))
+			|| (sharedsecret_auth_calc_ha1(user, (uint8_t*) auth.sharedsecret2,
+                                   auth.sharedsecret2_length, ctx->key)
+			   && !stun_msg_chk_mi(msg, ctx->key, ctx->keylen)))) {
+			restund_info("auth: shared secret auth for user '%s' (%j) failed\n",
+				     user->v.username, src);
+			err = stun_ereply(proto, sock, src, 0, msg,
+					  401, "Unauthorized",
+					  NULL, 0, ctx->fp, 3,
+					  STUN_ATTR_REALM, restund_realm(),
+					  STUN_ATTR_NONCE, mknonce(nstr, now, src),
+					  STUN_ATTR_SOFTWARE, restund_software);
+			goto unauth;
+		} else {
+            /*
+			restund_info("auth: shared secret auth for user '%s' (%j) worked\n",
+				     user->v.username, src);
+            */
+            if (STUN_METHOD_ALLOCATE == stun_msg_method(msg) && !sharedsecret_auth_check_timestamp(user, now)) {
+                restund_info("auth: shared secret auth for user '%s' expired)\n",
+                         user->v.username);
+                err = stun_ereply(proto, sock, src, 0, msg,
+                          401, "Unauthorized",
+                          NULL, 0, ctx->fp, 3,
+                          STUN_ATTR_REALM, restund_realm(),
+                          STUN_ATTR_NONCE, mknonce(nstr, now, src),
+                          STUN_ATTR_SOFTWARE, restund_software);
+                goto unauth;
+            }
+		}
+	} else if (restund_get_ha1(user->v.username, ctx->key)) {
 		restund_info("auth: unknown user '%s' (%j)\n",
 			     user->v.username, src);
 		err = stun_ereply(proto, sock, src, 0, msg,
@@ -189,6 +275,18 @@ static int module_init(void)
 	auth.secret = rand_u64();
 
 	conf_get_u32(restund_conf(), "auth_nonce_expiry", &auth.nonce_expiry);
+
+	auth.sharedsecret_length = 0;
+	auth.sharedsecret2_length = 0;
+    conf_get_str(restund_conf(), "auth_shared", auth.sharedsecret, sizeof(auth.sharedsecret));
+    auth.sharedsecret_length = strlen(auth.sharedsecret);
+    conf_get_str(restund_conf(), "auth_shared_rollover", auth.sharedsecret2, sizeof(auth.sharedsecret2));
+    auth.sharedsecret2_length = strlen(auth.sharedsecret2);
+    if (auth.sharedsecret_length > 0 || auth.sharedsecret2_length > 0) {
+        restund_debug("auth: module loaded shared secret lengths %d and %d\n", 
+                      auth.sharedsecret_length,
+                      auth.sharedsecret2_length);
+    }
 
 	restund_stun_register_handler(&stun);
 
