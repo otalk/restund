@@ -8,7 +8,7 @@
 #include <time.h>
 #include <stdlib.h>
 #include <re.h>
-#include <re_hmac.h>
+/*#include <re_hmac.h>*/
 #include <restund.h>
 
 #ifndef SHA_DIGEST_LENGTH
