@@ -390,7 +390,7 @@ void allocate_request(struct turnd *turnd, struct allocation *alx,
 	if (rsvt)
 		err = rsvt_listen(turnd->ht_alloc, al, rsvt->v.rsv_token);
 	else
-		err = relay_listen(listen_addr(turnd, af), al, even ? &even->v.even_port :
+		err = relay_listen(rel_addr, al, even ? &even->v.even_port :
 				   NULL);
 
 	if (err) {
