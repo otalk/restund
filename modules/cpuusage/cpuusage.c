@@ -66,19 +66,20 @@ static void cpumon(long unsigned int *utime, long unsigned int *stime,
 
 static void stats_handler(struct mbuf *mb)
 {
-    float dt, user, sys;
+    float dt;
+    int user, sys;
 
     cpumon(&stuff.utime_stop, &stuff.stime_stop, &stuff.stop);
 
     dt = stuff.stop - stuff.start;
-    user = 100 * (stuff.utime_stop - stuff.utime_start) / dt;
-    sys = 100 * (stuff.stime_stop - stuff.stime_start) / dt;
+    user = ceil(100.0 * (stuff.utime_stop - stuff.utime_start) / dt);
+    sys = ceil(100.0 * (stuff.stime_stop - stuff.stime_start) / dt);
 
     stuff.utime_start = stuff.utime_stop;
     stuff.stime_start = stuff.stime_stop;
     stuff.start = stuff.stop;
-    (void)mbuf_printf(mb, "usr %d\n", ceil(user));
-    (void)mbuf_printf(mb, "sys %d\n", ceil(sys));
+    (void)mbuf_printf(mb, "usr %d\n", user);
+    (void)mbuf_printf(mb, "sys %d\n", sys);
 }
 
 

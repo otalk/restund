@@ -15,6 +15,7 @@ static struct {
     uint32_t freq;
 
 	struct sa dest_udp;
+    char identifier[512];
 } stuff;
 
 struct turnstats {
@@ -87,11 +88,12 @@ static void tic(void *arg) {
     mbuf_reset(mb);
     mbuf_write_str(mb, "[{\"name\": \"restund\","
                    "\"columns\": ["
-                   "\"time\", \"utime\", \"stime\", "
+                   "\"time\", \"host\", \"utime\", \"stime\", "
                    "\"allocs_cur\", \"bytes_rx\", \"bytes_tx\", \"bytes_tot\""
                    "],");
-    mbuf_printf(mb, "\"points\": [%ld, %d, %d, %d, %d, %d, %d]", 
-                now, cpustats.usr, cpustats.sys,
+    mbuf_printf(mb, "\"points\": [[%ld, \"%s\", %d, %d, %d, %d, %d, %d]]", 
+                now, stuff.identifier,
+                cpustats.usr, cpustats.sys,
                 oldturn.allocc_cur,
                 oldturn.bytec_rx / oldturn.ts,
                 oldturn.bytec_tx / oldturn.ts,
@@ -100,13 +102,6 @@ static void tic(void *arg) {
     mbuf_set_pos(mb, 0);
 
     udp_send_anon(&stuff.dest_udp, mb);
-
-    restund_debug("points: [%ld, %d, %d, %d, %d, %d, %d]\n", 
-                now, cpustats.usr, cpustats.sys,
-                oldturn.allocc_cur,
-                oldturn.bytec_rx / oldturn.ts,
-                oldturn.bytec_tx / oldturn.ts,
-                oldturn.bytec / oldturn.ts);
 	mb = mem_deref(mb);
 }
 
@@ -128,6 +123,9 @@ static int module_init(void)
 
 	if (conf_get_u32(restund_conf(), "influxdb_frequency", &stuff.freq))
 		stuff.freq = 15;
+
+    if (conf_get_str(restund_conf(), "influxdb_host_identifier", stuff.identifier, sizeof(stuff.identifier)))
+        strcpy(stuff.identifier, "unknown");
 
 	err = sa_set(&stuff.dest_udp, &addr, port);
 	if (err) {
