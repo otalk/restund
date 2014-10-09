@@ -79,15 +79,15 @@ static void tic(void *arg) {
     mbuf_write_str(mb, "[{\"name\": \"restund\","
                    "\"columns\": ["
                    "\"time\", \"host\", \"utime\", \"stime\", "
-                   "\"allocs_cur\", \"bytes_rx\", \"bytes_tx\", \"bytes_tot\""
+                   "\"allocs_cur\", \"bitrate_rx\", \"bitrate_tx\", \"bitrate_tot\""
                    "],");
     mbuf_printf(mb, "\"points\": [[%ld, \"%s\", %d, %d, %d, %d, %d, %d]]", 
                 now, stuff.identifier,
                 cpustats.usr, cpustats.sys,
                 tstats.allocc_cur,
-                (tstats.bytec_rx - oldturn.bytec_rx)/ (tstats.ts - oldturn.ts),
-                (tstats.bytec_tx - oldturn.bytec_tx)/ (tstats.ts - oldturn.ts),
-                (tstats.bytec - oldturn.bytec)/ (tstats.ts - oldturn.ts));
+                8 * (tstats.bytec_rx - oldturn.bytec_rx)/ (tstats.ts - oldturn.ts),
+                8 * (tstats.bytec_tx - oldturn.bytec_tx)/ (tstats.ts - oldturn.ts),
+                8 * (tstats.bytec - oldturn.bytec)/ (tstats.ts - oldturn.ts));
     mbuf_write_str(mb, "}]");
     mbuf_set_pos(mb, 0);
 
