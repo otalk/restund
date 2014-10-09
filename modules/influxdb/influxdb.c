@@ -23,6 +23,17 @@ static struct {
     long unsigned int stime_stop;
 } stuff;
 
+struct turnstats {
+    time_t ts;
+	long long unsigned bytec_tx;
+	long long unsigned bytec_rx;
+    long long unsigned bytec;
+	long long unsigned allocc_tot;
+	unsigned allocc_cur;
+};
+
+static struct turnstats tstats;
+
 
 static void read_pid(long unsigned int *utime, long unsigned int *stime) {
     char buf[512];
@@ -70,20 +81,58 @@ static void cpumon(long unsigned int *utime, long unsigned int *stime,
 
 static void tic(void *arg) {
     double dt, user, sys;
-    struct mbuf *mb;
 	const time_t now = time(NULL);
     int err;
 
-    cpumon(&stuff.utime_stop, &stuff.stime_stop, &stuff.stop);
+    struct mbuf *mb;
+    struct mbuf *cmdbuf;
+	struct pl cmd;
+    char buf[4096];
+    struct turnstats oldturn;
 
+    cpumon(&stuff.utime_stop, &stuff.stime_stop, &stuff.stop);
 
     dt = stuff.stop - stuff.start;
     user = 100.0 * (stuff.utime_stop - stuff.utime_start) / dt;
     sys = 100.0 * (stuff.stime_stop - stuff.stime_start) / dt;
+    stuff.utime_start = stuff.utime_stop;
+    stuff.stime_start = stuff.stime_stop;
+    stuff.start = stuff.stop;
+    // tmr_start(struct tmr *tmr, uint64_t delay, tmr_h *th, void *arg);
+	tmr_start(&stuff.tmr, 15 * 1000, tic, NULL);
     restund_debug("influxdb tic usr %f sys %f delta %f\n", user, sys, dt);
-    mb = mbuf_alloc(1024);
+
+    mb = mbuf_alloc(4096);
+    cmdbuf = mbuf_alloc(1024);
+
     mbuf_write_str(mb, "[{\"name\": \"restund\","
                    "\"columns\": [\"time\", \"utime\", \"stime\"],");
+
+    // get turn stats
+    pl_set_str(&cmd, "turnstats");
+	restund_cmd(&cmd, cmdbuf);
+    mbuf_write_u8(cmdbuf, 0);
+    mbuf_set_pos(cmdbuf, 0);
+    mbuf_read_str(cmdbuf, buf, sizeof(buf));
+    memcpy(&oldturn, &tstats, sizeof(oldturn));
+    sscanf(buf, 
+           "allocs_cur %u\n"
+           "allocs_tot %llu\n"
+           "bytes_tx %llu\n"
+           "bytes_rx %llu\n"
+           "bytes_tot %llu\n",
+           &tstats.allocc_cur,
+           &tstats.allocc_tot,
+           &tstats.bytec_rx,
+           &tstats.bytec_tx,
+           &tstats.bytec);
+    tstats.ts = now;
+
+    restund_debug("turnstats bytec %d %d in %d, %f\n", tstats.bytec, oldturn.bytec, tstats.ts - oldturn.ts,
+                  (tstats.bytec - oldturn.bytec)/(tstats.ts - oldturn.ts));
+
+
+
     mbuf_printf(mb, "\"points\": [%ld, %f, %f]", 
                 now, user, sys);
     mbuf_write_str(mb, "}]");
@@ -91,13 +140,9 @@ static void tic(void *arg) {
 
     err = udp_send_anon(&stuff.dest_udp, mb);
 
-	mb = mem_deref(mb);
 
-    stuff.utime_start = stuff.utime_stop;
-    stuff.stime_start = stuff.stime_stop;
-    stuff.start = stuff.stop;
-    // tmr_start(struct tmr *tmr, uint64_t delay, tmr_h *th, void *arg);
-	tmr_start(&stuff.tmr, 15 * 1000, tic, NULL);
+	mb = mem_deref(mb);
+	cmdbuf = mem_deref(cmdbuf);
 }
 
 
@@ -122,6 +167,13 @@ static int module_init(void)
 			      &addr, port);
 		goto out;
 	}
+
+    tstats.ts = time(NULL);
+    tstats.bytec_tx = 0;
+    tstats.bytec_rx = 0;
+    tstats.bytec = 0;
+    tstats.allocc_tot = 0;
+    tstats.allocc_cur = 0;
 
     /* start doing stuff */
     cpumon(&stuff.utime_start, &stuff.stime_start, &stuff.start);
