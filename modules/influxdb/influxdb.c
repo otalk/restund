@@ -74,16 +74,6 @@ static void tic(void *arg) {
            &tstats.bytec);
     tstats.ts = now;
 
-    // contains negative difference, must be multiplied by -1
-    // (or divived by negative time diff)
-    oldturn.ts -= tstats.ts;
-    oldturn.allocc_cur = tstats.allocc_cur;
-    oldturn.allocc_tot = tstats.allocc_tot;
-    oldturn.bytec_rx -= tstats.bytec_rx;
-    oldturn.bytec_tx -= tstats.bytec_tx;
-    oldturn.bytec -= tstats.bytec;
-
-
     // write out stuff
     mbuf_reset(mb);
     mbuf_write_str(mb, "[{\"name\": \"restund\","
@@ -94,10 +84,10 @@ static void tic(void *arg) {
     mbuf_printf(mb, "\"points\": [[%ld, \"%s\", %d, %d, %d, %d, %d, %d]]", 
                 now, stuff.identifier,
                 cpustats.usr, cpustats.sys,
-                oldturn.allocc_cur,
-                oldturn.bytec_rx / oldturn.ts,
-                oldturn.bytec_tx / oldturn.ts,
-                oldturn.bytec / oldturn.ts);
+                tstats.allocc_cur,
+                (tstats.bytec_rx - oldturn.bytec_rx)/ (tstats.ts - oldturn.ts),
+                (tstats.bytec_tx - oldturn.bytec_tx)/ (tstats.ts - oldturn.ts),
+                (tstats.bytec - oldturn.bytec)/ (tstats.ts - oldturn.ts));
     mbuf_write_str(mb, "}]");
     mbuf_set_pos(mb, 0);
 
