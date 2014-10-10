@@ -52,7 +52,8 @@ static void tic(void *arg) {
     struct reqstats oldreq;
     struct turnstats oldturn;
 
-	tmr_start(&stuff.tmr, stuff.freq * 1000, tic, NULL);
+    (void)arg;
+    tmr_start(&stuff.tmr, stuff.freq * 1000, tic, NULL);
 
     mb = mbuf_alloc(4096);
     // get cpu stats
