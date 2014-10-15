@@ -6,6 +6,6 @@
 
 MOD		:= cpuusage
 $(MOD)_SRCS	+= cpuusage.c
-$(MOD)_LFLAGS	+= -lm
+$(MOD)_LFLAGS	+=
 
 include mk/mod.mk

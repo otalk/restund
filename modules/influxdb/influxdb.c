@@ -41,8 +41,8 @@ static struct turnstats tstats;
 
 static void tic(void *arg) {
     struct cpustats {
-        int usr;
-        int sys;
+        long unsigned int usr;
+        long unsigned int sys;
     } cpustats;
 	const time_t now = time(NULL);
 
@@ -62,7 +62,7 @@ static void tic(void *arg) {
     mbuf_write_u8(mb, 0);
     mbuf_set_pos(mb, 0);
     mbuf_read_str(mb, buf, sizeof(buf));
-    sscanf(buf, "usr %d\nsys %d\n", &cpustats.usr, &cpustats.sys);
+    sscanf(buf, "usr %lu\nsys %lu\n", &cpustats.usr, &cpustats.sys);
 
     // get request stats
     mbuf_reset(mb);
