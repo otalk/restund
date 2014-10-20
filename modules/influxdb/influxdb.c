@@ -44,6 +44,7 @@ static void tic(void *arg) {
         long unsigned int usr;
         long unsigned int sys;
     } cpustats;
+    struct memstat mstat = { 0,0,0,0,~0,0 };
 	const time_t now = time(NULL);
 
     struct mbuf *mb;
@@ -107,6 +108,9 @@ static void tic(void *arg) {
            &tstats.bytec);
     tstats.ts = now;
 
+    // get memory stats
+    mem_get_stat(&mstat);
+    
     // write out stuff
     mbuf_reset(mb);
     mbuf_write_str(mb, "[{\"name\": \"restund\","
@@ -115,8 +119,9 @@ static void tic(void *arg) {
                    "\"utime\", \"stime\", "
                    "\"req_bind\", \"req_alloc\", \"req_refresh\", \"req_chanbind\", \"req_unk\", "
                    "\"allocs_cur\", \"bitrate_rx\", \"bitrate_tx\", \"bitrate_tot\""
+                   "\"mem_cur\", \"mem_peak\""
                    "],");
-    mbuf_printf(mb, "\"points\": [[%ld, \"%s\", %ld, %ld, %ld, %ld, %ld, %ld, %ld, %d, %ld, %ld, %ld]]", 
+    mbuf_printf(mb, "\"points\": [[%ld, \"%s\", %ld, %ld, %ld, %ld, %ld, %ld, %ld, %d, %ld, %ld, %ld, %d, %d]]", 
                 now, stuff.identifier,
                 cpustats.usr, cpustats.sys,
                 rstats.n_bind_req - oldreq.n_bind_req,
@@ -127,7 +132,8 @@ static void tic(void *arg) {
                 tstats.allocc_cur,
                 8 * (tstats.bytec_rx - oldturn.bytec_rx)/ (tstats.ts - oldturn.ts),
                 8 * (tstats.bytec_tx - oldturn.bytec_tx)/ (tstats.ts - oldturn.ts),
-                8 * (tstats.bytec - oldturn.bytec)/ (tstats.ts - oldturn.ts));
+                8 * (tstats.bytec - oldturn.bytec)/ (tstats.ts - oldturn.ts),
+                mstat.bytes_cur, mstat.bytes_peak);
     mbuf_write_str(mb, "}]");
     mbuf_set_pos(mb, 0);
 
