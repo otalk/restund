@@ -118,7 +118,7 @@ static void tic(void *arg) {
                    "\"time\", \"host\", "
                    "\"utime\", \"stime\", "
                    "\"req_bind\", \"req_alloc\", \"req_refresh\", \"req_chanbind\", \"req_unk\", "
-                   "\"allocs_cur\", \"bitrate_rx\", \"bitrate_tx\", \"bitrate_tot\""
+                   "\"allocs_cur\", \"bitrate_rx\", \"bitrate_tx\", \"bitrate_tot\","
                    "\"mem_cur\", \"mem_peak\""
                    "],");
     mbuf_printf(mb, "\"points\": [[%ld, \"%s\", %ld, %ld, %ld, %ld, %ld, %ld, %ld, %d, %ld, %ld, %ld, %d, %d]]", 
