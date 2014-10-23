@@ -277,6 +277,7 @@ static void stats_handler(struct mbuf *mb)
 	(void)mbuf_printf(mb, "bytes_rx %llu\n", turnd.bytec_rx);
 	(void)mbuf_printf(mb, "bytes_tot %llu\n",
 			  turnd.bytec_tx + turnd.bytec_rx);
+	(void)mbuf_printf(mb, "chan_cur %llu\n", turnd.chan_cur);
 }
 
 

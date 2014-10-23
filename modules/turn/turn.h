@@ -17,6 +17,7 @@ struct turnd {
 	uint32_t allocc_cur;
 	uint32_t lifetime_max;
 	uint32_t udp_sockbuf_size;
+    uint32_t chan_cur;
 };
 
 struct chanlist;
