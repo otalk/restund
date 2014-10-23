@@ -34,8 +34,8 @@ struct turnstats {
 	long long unsigned bytec_rx;
     long long unsigned bytec;
 	long long unsigned allocc_tot;
-	unsigned allocc_cur;
-	unsigned chan_cur;
+	long long unsigned allocc_cur;
+	long long unsigned chan_cur;
 };
 static struct turnstats tstats;
 
@@ -97,12 +97,12 @@ static void tic(void *arg) {
     mbuf_read_str(mb, buf, sizeof(buf));
     memcpy(&oldturn, &tstats, sizeof(oldturn));
     sscanf(buf, 
-           "allocs_cur %u\n"
+           "allocs_cur %llu\n"
            "allocs_tot %llu\n"
            "bytes_tx %llu\n"
            "bytes_rx %llu\n"
            "bytes_tot %llu\n"
-           "chan_cur %u\n",
+           "chan_cur %llu\n",
            &tstats.allocc_cur,
            &tstats.allocc_tot,
            &tstats.bytec_rx,
