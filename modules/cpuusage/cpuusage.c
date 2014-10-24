@@ -20,7 +20,8 @@ static struct {
 } stuff;
 
 
-static void read_pid(long unsigned int *utime, long unsigned int *stime) {
+static void read_pid(long unsigned int *utime, long unsigned int *stime)
+{
     char buf[512];
     FILE *fp;
     sprintf(buf, "/proc/%d/stat", getpid());
@@ -32,11 +33,14 @@ static void read_pid(long unsigned int *utime, long unsigned int *stime) {
                "%*d %*s %*c %*d %*d %*d %*d %*d %*d %*d %*d %*d %*d %lu %lu %*s",
                utime, stime);
         fclose(fp);
+    } else {
+        restund_warning("cpuusage: can't open pid stat");
     }
 }
 
 
-static void read_stat(long unsigned int *time_total) {
+static void read_stat(long unsigned int *time_total)
+{
     char buf[512];
     int vals[10];
     FILE *fp;
@@ -53,29 +57,36 @@ static void read_stat(long unsigned int *time_total) {
         }
         *time_total = sum;
         fclose(fp);
+    } else {
+        restund_warning("cpuusage: can't open stat");
     }
 }
 
 
 static void cpumon(long unsigned int *utime, long unsigned int *stime,
-                   long unsigned int *total) {
+                   long unsigned int *total)
+{
     read_pid(utime, stime);
     read_stat(total);
 }
 
 static void stats_handler(struct mbuf *mb)
 {
-    long unsigned dt, user, sys;
+    long unsigned dt, user = 0, sys = 0;
 
     cpumon(&stuff.utime_stop, &stuff.stime_stop, &stuff.stop);
 
     dt = stuff.stop - stuff.start;
-    user = 100 * (stuff.utime_stop - stuff.utime_start) / dt;
-    sys = 100 * (stuff.stime_stop - stuff.stime_start) / dt;
+    if (dt > 0) {
+        user = 100 * (stuff.utime_stop - stuff.utime_start) / dt;
+        sys = 100 * (stuff.stime_stop - stuff.stime_start) / dt;
 
-    stuff.utime_start = stuff.utime_stop;
-    stuff.stime_start = stuff.stime_stop;
-    stuff.start = stuff.stop;
+        stuff.utime_start = stuff.utime_stop;
+        stuff.stime_start = stuff.stime_stop;
+        stuff.start = stuff.stop;
+    } else {
+        restund_warning("cpuusage: dt is 0");
+    }
     (void)mbuf_printf(mb, "usr %lu\n", user);
     (void)mbuf_printf(mb, "sys %lu\n", sys);
 }
