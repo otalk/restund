@@ -52,6 +52,7 @@ static void destructor(void *arg)
 
 	hash_unlink(&chan->he_numb);
 	hash_unlink(&chan->he_peer);
+    turndp()->chan_cur--;
 }
 
 
@@ -206,6 +207,7 @@ static struct chan *chan_create(struct chanlist *cl, uint16_t numb,
 
 	restund_debug("turn: allocation %p channel 0x%x %J created\n",
 		      chan->al, chan->numb, &chan->peer);
+    turndp()->chan_cur++;
 
 	return chan;
 }

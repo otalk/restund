@@ -34,7 +34,8 @@ struct turnstats {
 	long long unsigned bytec_rx;
     long long unsigned bytec;
 	long long unsigned allocc_tot;
-	unsigned allocc_cur;
+	long long unsigned allocc_cur;
+	long long unsigned chan_cur;
 };
 static struct turnstats tstats;
 
@@ -96,16 +97,18 @@ static void tic(void *arg) {
     mbuf_read_str(mb, buf, sizeof(buf));
     memcpy(&oldturn, &tstats, sizeof(oldturn));
     sscanf(buf, 
-           "allocs_cur %u\n"
+           "allocs_cur %llu\n"
            "allocs_tot %llu\n"
            "bytes_tx %llu\n"
            "bytes_rx %llu\n"
-           "bytes_tot %llu\n",
+           "bytes_tot %llu\n"
+           "chan_cur %llu\n",
            &tstats.allocc_cur,
            &tstats.allocc_tot,
            &tstats.bytec_rx,
            &tstats.bytec_tx,
-           &tstats.bytec);
+           &tstats.bytec,
+           &tstats.chan_cur);
     tstats.ts = now;
 
     // get memory stats
@@ -118,10 +121,10 @@ static void tic(void *arg) {
                    "\"time\", \"host\", "
                    "\"utime\", \"stime\", "
                    "\"req_bind\", \"req_alloc\", \"req_refresh\", \"req_chanbind\", \"req_unk\", "
-                   "\"allocs_cur\", \"bitrate_rx\", \"bitrate_tx\", \"bitrate_tot\","
+                   "\"allocs_cur\", \"chan_cur\", \"bitrate_rx\", \"bitrate_tx\", \"bitrate_tot\","
                    "\"mem_cur\", \"mem_peak\""
                    "],");
-    mbuf_printf(mb, "\"points\": [[%ld, \"%s\", %ld, %ld, %ld, %ld, %ld, %ld, %ld, %d, %ld, %ld, %ld, %d, %d]]", 
+    mbuf_printf(mb, "\"points\": [[%ld, \"%s\", %ld, %ld, %ld, %ld, %ld, %ld, %ld, %ld, %d, %ld, %ld, %ld, %d, %d]]", 
                 now, stuff.identifier,
                 cpustats.usr, cpustats.sys,
                 rstats.n_bind_req - oldreq.n_bind_req,
@@ -129,7 +132,7 @@ static void tic(void *arg) {
                 rstats.n_refresh_req - oldreq.n_refresh_req,
                 rstats.n_chanbind_req - oldreq.n_chanbind_req,
                 rstats.n_unk_req - oldreq.n_unk_req,
-                tstats.allocc_cur,
+                tstats.allocc_cur, tstats.chan_cur,
                 8 * (tstats.bytec_rx - oldturn.bytec_rx)/ (tstats.ts - oldturn.ts),
                 8 * (tstats.bytec_tx - oldturn.bytec_tx)/ (tstats.ts - oldturn.ts),
                 8 * (tstats.bytec - oldturn.bytec)/ (tstats.ts - oldturn.ts),
