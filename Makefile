@@ -15,7 +15,7 @@ VER_PATCH := 2
 PROJECT   := restund
 VERSION   := $(VER_MAJOR).$(VER_MINOR).$(VER_PATCH)
 
-MODULES	  := binding auth turn stat status influxdb
+MODULES	  := binding auth turn stat status influxdb cpuusage
 MODULES	  += $(EXTRA_MODULES)
 
 LIBRE_MK  := $(shell [ -f ../re/mk/re.mk ] && \
