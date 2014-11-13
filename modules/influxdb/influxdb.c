@@ -14,28 +14,28 @@ static struct {
     struct tmr tmr;
     uint32_t freq;
 
-	struct sa dest_udp;
+    struct sa dest_udp;
     char identifier[512];
 } stuff;
 
 struct reqstats {
     time_t ts;
-	long unsigned n_bind_req;
-	long unsigned n_alloc_req;
-	long unsigned n_refresh_req;
-	long unsigned n_chanbind_req;
-	long unsigned n_unk_req;
+    long unsigned n_bind_req;
+    long unsigned n_alloc_req;
+    long unsigned n_refresh_req;
+    long unsigned n_chanbind_req;
+    long unsigned n_unk_req;
 };
 static struct reqstats rstats;
 
 struct turnstats {
     time_t ts;
-	long long unsigned bytec_tx;
-	long long unsigned bytec_rx;
+    long long unsigned bytec_tx;
+    long long unsigned bytec_rx;
     long long unsigned bytec;
-	long long unsigned allocc_tot;
-	long long unsigned allocc_cur;
-	long long unsigned chan_cur;
+    long long unsigned allocc_tot;
+    long long unsigned allocc_cur;
+    long long unsigned chan_cur;
 };
 static struct turnstats tstats;
 
@@ -46,10 +46,10 @@ static void tic(void *arg) {
         long unsigned int sys;
     } cpustats;
     struct memstat mstat = { 0,0,0,0,~0,0 };
-	const time_t now = time(NULL);
+    const time_t now = time(NULL);
 
     struct mbuf *mb;
-	struct pl cmd;
+    struct pl cmd;
     char buf[4096];
     struct reqstats oldreq;
     struct turnstats oldturn;
@@ -60,7 +60,7 @@ static void tic(void *arg) {
     mb = mbuf_alloc(4096);
     // get cpu stats
     pl_set_str(&cmd, "cpuusage");
-	restund_cmd(&cmd, mb);
+    restund_cmd(&cmd, mb);
     mbuf_write_u8(mb, 0);
     mbuf_set_pos(mb, 0);
     mbuf_read_str(mb, buf, sizeof(buf));
@@ -198,16 +198,16 @@ static int module_init(void)
 
 static int module_close(void)
 {
-	restund_debug("influxdb: module closed\n");
+    restund_debug("influxdb: module closed\n");
 
-	tmr_cancel(&stuff.tmr);
-	return 0;
+    tmr_cancel(&stuff.tmr);
+    return 0;
 }
 
 
 const struct mod_export exports = {
-	.name  = "influxdb",
-	.type  = "stun",
-	.init  = module_init,
-	.close = module_close
+    .name  = "influxdb",
+    .type  = "stun",
+    .init  = module_init,
+    .close = module_close
 };
