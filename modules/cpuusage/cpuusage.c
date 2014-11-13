@@ -100,25 +100,25 @@ static struct restund_cmdsub cmd_cpu = {
 
 static int module_init(void)
 {
-	restund_debug("cpu usage: module loaded\n");
-	restund_cmd_subscribe(&cmd_cpu);
+    restund_debug("cpu usage: module loaded\n");
+    restund_cmd_subscribe(&cmd_cpu);
 
     cpumon(&stuff.utime_start, &stuff.stime_start, &stuff.start);
-	return 0;
+    return 0;
 }
 
 
 static int module_close(void)
 {
-	restund_debug("cpu usage: module closed\n");
-	restund_cmd_unsubscribe(&cmd_cpu);
-	return 0;
+    restund_debug("cpu usage: module closed\n");
+    restund_cmd_unsubscribe(&cmd_cpu);
+    return 0;
 }
 
 
 const struct mod_export exports = {
-	.name  = "cpu usage",
-	.type  = "stun",
-	.init  = module_init,
-	.close = module_close
+    .name  = "cpu usage",
+    .type  = "stun",
+    .init  = module_init,
+    .close = module_close
 };
