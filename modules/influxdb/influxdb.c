@@ -57,6 +57,9 @@ static void tic(void *arg) {
     (void)arg;
     tmr_start(&stuff.tmr, stuff.freq * 1000, tic, NULL);
 
+    // time should have advanced since we last called this
+    if (now == tstats.ts) return;
+
     mb = mbuf_alloc(4096);
     // get cpu stats
     pl_set_str(&cmd, "cpuusage");
@@ -192,7 +195,7 @@ static int module_init(void)
     tmr_start(&stuff.tmr, stuff.freq * 1000, tic, NULL);
 
  out:
-	return err;
+    return err;
 }
 
 
