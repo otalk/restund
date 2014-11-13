@@ -70,6 +70,7 @@ static void cpumon(long unsigned int *utime, long unsigned int *stime,
     read_stat(total);
 }
 
+
 static void stats_handler(struct mbuf *mb)
 {
     long unsigned dt, user = 0, sys = 0;
@@ -93,8 +94,8 @@ static void stats_handler(struct mbuf *mb)
 
 
 static struct restund_cmdsub cmd_cpu = {
-	.cmdh = stats_handler,
-	.cmd  = "cpuusage",
+    .cmdh = stats_handler,
+    .cmd  = "cpuusage",
 };
 
 
