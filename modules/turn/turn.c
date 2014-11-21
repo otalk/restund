@@ -310,12 +310,6 @@ static int module_init(void)
 	restund_cmd_subscribe(&cmd_turn);
 	restund_cmd_subscribe(&cmd_turnstats);
 
-	/* udp listen address */
-	if (!conf_get(restund_conf(), "udp_internal_listen", &opt))
-		err = sa_set(&turnd.udp_listen_addr, &opt, 0);
-	else
-		sa_init(&turnd.udp_listen_addr, AF_UNSPEC);
-
 	/* turn_external_addr */
 	if (!conf_get(restund_conf(), "turn_relay_addr", &opt))
 		err = sa_set(&turnd.rel_addr, &opt, 0);
