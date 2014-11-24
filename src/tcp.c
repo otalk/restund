@@ -159,16 +159,19 @@ static void tcp_conn_handler(const struct sa *peer, void *arg)
 	struct tcp_lstnr *tl = arg;
 	struct conn *conn, *xconn;
 	int err;
+	struct le *le;
 
 	restund_debug("tcp: connect from: %J\n", peer);
-
-	/* close oldest connection, if not in use */
-	xconn = list_ledata(tcl.head);
-	if (xconn && mem_nrefs(xconn->tc) <= refc_idle(xconn) &&
-	    now > xconn->created + 60) {
-		restund_debug("tcp: closing unused connection\n");
-		mem_deref(xconn);
-	}
+	
+	/* close any unused connections */
+	for (le=tcl.head; le; le=le->next) {
+		xconn = le->data;
+		if (mem_nrefs(xconn->tc) <= refc_idle(xconn) &&
+			now > xconn->created + 60) {
+			restund_debug("tcp: closing unused connection\n");
+			mem_deref(xconn);
+		}
+	};
 
 	conn = mem_zalloc(sizeof(*conn), conn_destructor);
 	if (!conn) {
