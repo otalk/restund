@@ -215,6 +215,11 @@ static bool raw_handler(int proto, const struct sa *src,
 	if (mbuf_get_left(mb) < len)
 		return false;
 
+
+    // strip any optional padding
+    if (len != mbuf_get_left(mb))
+        mbuf_set_end(mb, mb->pos + len);
+
 	chan = chan_numb_find(al->chans, numb);
 	if (!chan)
 		return false;
