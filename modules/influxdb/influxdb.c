@@ -120,7 +120,6 @@ static void tic(void *arg) {
     // write out stuff
     mbuf_reset(mb);
     mbuf_printf(mb, "restund,host=%s utime=%ld,stime=%ld,req_bind=%ld,req_alloc=%ld,req_refresh=%ld,req_chanbind=%ld,req_unk=%ld,allocs_cur=%ld,chan_cur=%ld,bitrate_rx=%ld,bitrate_tx=%ld,mem_cur=%d,mem_peak=%d %ld",
-		stuff.auth,
                 stuff.identifier,
                 cpustats.usr, cpustats.sys,
                 rstats.n_bind_req - oldreq.n_bind_req,
