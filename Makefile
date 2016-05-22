@@ -61,7 +61,7 @@ ifeq ($(LIBDIR),)
 LIBDIR  := $(PREFIX)/lib
 endif
 MOD_PATH:= $(LIBDIR)/$(PROJECT)/modules
-CFLAGS	+= -I$(LIBRE_INC) -Iinclude
+CFLAGS	+= -I$(LIBRE_INC) -Iinclude -std=gnu99
 BIN	:= $(PROJECT)$(BIN_SUFFIX)
 MOD_BINS:= $(patsubst %,%.so,$(MODULES))
 APP_MK	:= src/srcs.mk
